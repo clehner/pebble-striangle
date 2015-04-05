@@ -4,7 +4,7 @@
   "longName": "Sierpinski Triangle",
   "companyName": "Charles Lehner [DandyHacks]",
   "versionCode": 1,
-  "versionLabel": "1.0",
+  "versionLabel": "2.0",
   "sdkVersion": "3",
   "targetPlatforms": ["aplite", "basalt"],
   "watchapp": {
