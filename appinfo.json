@@ -1,0 +1,19 @@
+{
+  "uuid": "5c3b242c-6a78-4ebb-b204-b1abbe4ffba7",
+  "shortName": "Sierpinski Triangle",
+  "longName": "Sierpinski Triangle",
+  "companyName": "Charles Lehner [DandyHacks]",
+  "versionCode": 1,
+  "versionLabel": "1.0",
+  "sdkVersion": "3",
+  "targetPlatforms": ["aplite", "basalt"],
+  "watchapp": {
+    "watchface": false
+  },
+  "appKeys": {
+    "dummy": 0
+  },
+  "resources": {
+    "media": []
+  }
+}
