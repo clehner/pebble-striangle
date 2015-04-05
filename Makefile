@@ -2,7 +2,7 @@ NAME = pebble-striangle
 
 BIN = build/$(NAME).pbw
 
-default: quick install
+#default: quick install
 
 quick: pebble-striangle.c.o
 

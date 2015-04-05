@@ -4,49 +4,60 @@
 
 static Window *window;
 static Layer *window_layer;
-int16_t rows[2][WIDTH];
+static uint8_t factor = 0b11;
+
+static void multiply(uint8_t *from, uint8_t *to, uint8_t factor, uint8_t len) {
+  uint16_t carry = 0;
+  for (int i = 0; i < len; i++) {
+    uint16_t val = from[i] * factor;
+    to[i] = val | carry;
+    carry = val >> 8;
+  }
+}
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
-  // text_layer_set_text(text_layer, "Select");
-  for (int16_t i = 0; i < WIDTH; i++)
-    for (int16_t j = 0; j < 2; j++)
-      rows[j][i] = 1;
+  factor = 1;
   layer_mark_dirty(window_layer);
 }
 
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
+  factor++;
   layer_mark_dirty(window_layer);
 }
 
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
+  factor--;
   layer_mark_dirty(window_layer);
 }
 
 static void click_config_provider(void *context) {
   window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
-  window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
-  window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
+  window_single_repeating_click_subscribe(BUTTON_ID_UP, 50, up_click_handler);
+  window_single_repeating_click_subscribe(BUTTON_ID_DOWN, 50,
+      down_click_handler);
 }
 
 static void update_proc(Layer *this_layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(this_layer);
+  GBitmap *buffer = graphics_capture_frame_buffer(ctx);
+  if (!buffer) return;
+  uint8_t *data = gbitmap_get_data(buffer);
+  uint8_t row_size = gbitmap_get_bytes_per_row(buffer);
 
-  // erase layer
-  graphics_context_set_fill_color(ctx, GColorWhite);
-  graphics_fill_rect(ctx, bounds, 0, GCornerNone);
+  // assume buffer->bounds is the whole layer
 
-  for (int16_t y = 0; y < bounds.size.h; y++) {
-    int16_t y_prev = (y+1) % 2;
-    for (int16_t x = 0; x < WIDTH; x++) {
-      int16_t /*up_left = x > 1 ? rows[y_prev][x-1] : 0,*/
-              up_middle = rows[y_prev][x],
-              up_right = x < WIDTH-1 ? rows[y_prev][x+1] : 0,
-              pixel = (up_middle + up_right) % 2;
-      rows[y % 2][x] = pixel;
-      if (pixel)
-        graphics_draw_pixel(ctx, GPoint(x, y));
-    }
+  // clear first row except for one pixel
+  for (int j = 0; j < WIDTH / 8; j++)
+    data[j] = 0;
+  data[4] = 1;
+
+  for (int y = 1; y < bounds.size.h; y++) {
+      uint8_t *row_curr = &data[row_size * y],
+              *row_prev = &data[row_size * (y-1)];
+      multiply(row_prev, row_curr, factor, WIDTH / 8);
   }
+
+  graphics_release_frame_buffer(ctx, buffer);
 }
 
 static void window_load(Window *window) {
@@ -66,12 +77,6 @@ static void window_unload(Window *window) {
 }
 
 static void init(void) {
-  for (int16_t i = 0; i < WIDTH; i++)
-    for (int16_t j = 0; j < 2; j++)
-      rows[j][i] = 0;
-  rows[0][WIDTH/2] = 1;
-  //rows[1][1] = 1;
-
   window = window_create();
   window_set_click_config_provider(window, click_config_provider);
   window_set_window_handlers(window, (WindowHandlers) {
